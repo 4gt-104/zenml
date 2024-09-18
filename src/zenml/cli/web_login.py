@@ -16,7 +16,7 @@
 import platform
 import time
 import webbrowser
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import requests
 
@@ -24,6 +24,7 @@ from zenml import __version__
 from zenml.config.global_config import GlobalConfiguration
 from zenml.constants import (
     API,
+    AUTH,
     DEFAULT_HTTP_TIMEOUT,
     DEVICE_AUTHORIZATION,
     LOGIN,
@@ -33,10 +34,14 @@ from zenml.constants import (
 from zenml.exceptions import AuthorizationException, OAuthError
 from zenml.logger import get_logger
 
+if TYPE_CHECKING:
+    from zenml.models import OAuthTokenResponse
+
+
 logger = get_logger(__name__)
 
 
-def web_login(url: str, verify_ssl: Union[str, bool]) -> str:
+def web_login(url: str, verify_ssl: Union[str, bool]) -> "OAuthTokenResponse":
     """Implements the OAuth2 Device Authorization Grant flow.
 
     This function implements the client side of the OAuth2 Device Authorization
@@ -55,7 +60,7 @@ def web_login(url: str, verify_ssl: Union[str, bool]) -> str:
             file.
 
     Returns:
-        The access token returned by the OAuth2 server.
+        The response returned by the OAuth2 server.
 
     Raises:
         AuthorizationException: If an error occurred during the authorization
@@ -94,13 +99,17 @@ def web_login(url: str, verify_ssl: Union[str, bool]) -> str:
     # Get rid of any trailing slashes to prevent issues when having double
     # slashes in the URL
     url = url.rstrip("/")
+    zenml_pro_server = ".zenml.io" in url
+
+    auth_url = url + API + VERSION_1 + DEVICE_AUTHORIZATION
     zenml_pro_extra = ""
-    if ".zenml.io" in url:
+    if zenml_pro_server:
         zenml_pro_extra = (
             ZENML_PRO_CONNECTION_ISSUES_SUSPENDED_PAUSED_TENANT_HINT
         )
+        url = "http://localhost:8080"
+        auth_url = url + AUTH + DEVICE_AUTHORIZATION
     try:
-        auth_url = url + API + VERSION_1 + DEVICE_AUTHORIZATION
         response = requests.post(
             auth_url,
             headers={
@@ -157,6 +166,9 @@ def web_login(url: str, verify_ssl: Union[str, bool]) -> str:
     token_response: OAuthTokenResponse
     while True:
         login_url = url + API + VERSION_1 + LOGIN
+        if zenml_pro_server:
+            login_url = url + AUTH + LOGIN
+
         response = requests.post(
             login_url,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -168,7 +180,7 @@ def web_login(url: str, verify_ssl: Union[str, bool]) -> str:
             # The user has authorized the device, so we can extract the access token
             token_response = OAuthTokenResponse(**response.json())
             logger.info("Successfully logged in.")
-            return token_response.access_token
+            return token_response
         elif response.status_code == 400:
             try:
                 error_response = OAuthError(**response.json())
