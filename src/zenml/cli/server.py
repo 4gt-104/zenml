@@ -27,7 +27,6 @@ from zenml.analytics.enums import AnalyticsEvent
 from zenml.analytics.utils import track_handler
 from zenml.cli import utils as cli_utils
 from zenml.cli.cli import cli
-from zenml.cli.web_login import web_login
 from zenml.client import Client
 from zenml.config.global_config import GlobalConfiguration
 from zenml.console import console
@@ -35,6 +34,7 @@ from zenml.constants import ENV_ZENML_LOCAL_SERVER
 from zenml.enums import ServerProviderType, StoreType
 from zenml.exceptions import AuthorizationException, IllegalOperationError
 from zenml.logger import get_logger
+from zenml.login.web_login import web_login
 from zenml.utils import terraform_utils, yaml_utils
 from zenml.zen_server.utils import get_active_deployment
 
