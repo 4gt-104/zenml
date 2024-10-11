@@ -24,7 +24,7 @@ from typing import (
     Type,
 )
 
-from zenml.exceptions import EntityExistsError, StepContextError
+from zenml.exceptions import StepContextError
 from zenml.logger import get_logger
 from zenml.utils.singleton import SingletonMetaClass
 
